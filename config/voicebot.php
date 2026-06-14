@@ -157,6 +157,60 @@ return [
             'with' => [],
             'map' => [],
         ],
+        // Standalone product variations (only if you model them as their own rows;
+        // otherwise emit them inline on the product via 'payload.variations').
+        EntityKind::Variation->value => [
+            'enabled' => false,
+            'source' => null,
+            'model' => null,
+            'updated_at' => 'updated_at',
+            'external_id' => 'id',
+            'with' => [],
+            'map' => [
+                // 'payload.parent_external_id' => fn ($m) => 'laravel:product:'.$m->product_id,
+                // 'payload.price' => fn ($m) => (string) $m->price,  // decimal, NOT minor units
+                // 'payload.attributes' => fn ($m) => $m->options,    // {name: value}
+            ],
+        ],
+        EntityKind::Post->value => [
+            'enabled' => false,
+            'source' => null,
+            'model' => null,
+            'updated_at' => 'updated_at',
+            'external_id' => 'id',
+            'with' => [],
+            'map' => [
+                // 'payload.title' => 'title',
+                // 'payload.content_text' => fn ($m) => trim(strip_tags((string) $m->body)),
+            ],
+        ],
+        EntityKind::Cpt->value => [
+            'enabled' => false,
+            'source' => null,
+            'model' => null,
+            'updated_at' => 'updated_at',
+            'external_id' => 'id',
+            'with' => [],
+            'map' => [
+                // 'payload.title' => 'title',
+                // 'payload.content_text' => fn ($m) => trim(strip_tags((string) $m->body)),
+            ],
+        ],
+        // `site` is a single record, not a per-row table. The config source wraps a row
+        // id to laravel:site:{id}; for one global row that is fine, but if you have no
+        // such model, bind a tiny custom EntitySource instead (see the mapping docs).
+        EntityKind::Site->value => [
+            'enabled' => false,
+            'source' => null,
+            'model' => null,
+            'updated_at' => 'updated_at',
+            'external_id' => 'id',
+            'with' => [],
+            'map' => [
+                // 'payload.name' => fn () => config('app.name'),
+                // 'payload.currency' => fn () => config('voicebot.currency', 'UAH'),
+            ],
+        ],
     ],
 
     // Default currency used by example maps; surfaced for convenience only.
