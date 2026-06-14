@@ -21,8 +21,8 @@ LLM SDK; it only streams your data to the ingest endpoint.
 
 ## Requirements
 
-- PHP 8.2+
-- Laravel 10, 11 or 12
+- PHP 8.2+ (Laravel 13 requires PHP 8.3+)
+- Laravel 10, 11, 12 or 13
 - An `APP_KEY` (used to encrypt the stored shared secret)
 
 ## Install from Packagist

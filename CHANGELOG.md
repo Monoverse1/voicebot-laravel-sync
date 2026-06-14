@@ -3,6 +3,26 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-15
+
+### Added
+
+- **Laravel 13 support.** All five `illuminate/*` constraints now allow `^13.0`
+  (`contracts`, `support`, `console`, `http`, `database`), so the package installs
+  cleanly on `laravel/framework ^13`. Laravel 10/11/12 stay supported. The CI matrix
+  gains a Laravel 13 cell (PHP 8.3 + 8.4 × Testbench 11). The package's runtime API is
+  unchanged — no behaviour change beyond compatibility.
+
+### Changed
+
+- `spatie/laravel-package-tools` floor raised to `^1.93` (first 1.x line whose
+  `illuminate/contracts` constraint allows `^13.0`).
+- Dev tooling bumped for Laravel 13: `orchestra/testbench ^11.0`, `pestphp/pest ^4.0`
+  + `pest-plugin-laravel ^4.1`, `larastan/larastan ^3.10`, `laravel/pint ^1.29`. Each
+  is added alongside the existing 10/11/12 constraints, so older cells resolve their
+  prior versions.
+- `Protocol::CLIENT_VERSION` → `0.2.0` (sent as `X-VoiceBot-Plugin-Version`).
+
 ## [0.1.0] - 2026-06-14
 
 Initial release — a Laravel producer client for the VoiceBot canonical signed-ingest
