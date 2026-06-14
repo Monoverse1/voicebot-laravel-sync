@@ -1,0 +1,40 @@
+# Changelog
+
+All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2026-06-14
+
+Initial release — a Laravel producer client for the VoiceBot canonical signed-ingest
+contract (protocol v2, ADR-045 / ADR-055).
+
+### Added
+
+- HMAC-SHA256 request signer matching the backend verifier byte-for-byte
+  (`METHOD\npath\nts\nnonce\nbody_sha256`, raw-byte secret).
+- `IngestClient` for `pair` / `init` / `upload` / `finalize` / `events` / `status` /
+  `unpair`. The bytes hashed are the bytes sent — the signature never drifts from the
+  body. Retry policy is split by signing: **signed** calls retry on connection errors
+  only (the nonce is spent server-side before a 429/5xx, so retrying it would replay);
+  the unsigned pair handshake and the no-HMAC snapshot upload retry on 429/5xx with
+  backoff honouring `Retry-After`. Plaintext `http://` transport is rejected.
+- Streaming gzip-NDJSON snapshot writer; the full catalog is never held in memory.
+- `FullSync` (init with exact `expected_counts`, empty-snapshot tombstone guard) and
+  `DeltaSync` (per-kind watermarks advanced to run-start, op/byte batching, dead-letter,
+  watermark advances only on full success).
+- Dead-letter accumulates attempts per op identity and flags `exhausted` at
+  `sync.dead_letter_max_attempts` instead of re-parking forever.
+- Config-driven Eloquent source + `EntityMapper` (money minor units, slug lists, closure
+  mapping, `laravel:{kind}:{id}` external-id wrapping) and a custom-source contract.
+- Encrypted `SecretStore`; the shared secret is never logged, printed, or returned.
+- Artisan commands: `voicebot:pair`, `voicebot:unpair`, `voicebot:sync` (`--full` /
+  `--since` / `--dry-run` / `--queue`), `voicebot:doctor` (pre-flight that fails loudly
+  before the first push).
+- `SyncCatalogJob` (`ShouldQueue`) sharing one `SyncRunner` path with the command.
+- Self-registering, auto-running migrations for `voicebot_connections`,
+  `voicebot_sync_state`, `voicebot_dead_letter` (plain `php artisan migrate` creates them).
+- Typed `ConfigException` / `TransientException` drive cron-friendly exit-code
+  classification (no string matching).
+- Pest + Orchestra Testbench suite (matrix PHP 8.2/8.3 × Laravel 10/11/12 in CI),
+  including a backend-conformance signer vector, the hashed-equals-sent invariant, the
+  signed-no-retry / unsigned-retry policy, and migration table creation.

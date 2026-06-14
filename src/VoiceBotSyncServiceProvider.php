@@ -1,0 +1,117 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Monoverse\VoicebotSync;
+
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Container\Container;
+use Monoverse\VoicebotSync\Commands\DoctorCommand;
+use Monoverse\VoicebotSync\Commands\PairCommand;
+use Monoverse\VoicebotSync\Commands\SyncCommand;
+use Monoverse\VoicebotSync\Commands\UnpairCommand;
+use Monoverse\VoicebotSync\Http\IngestClient;
+use Monoverse\VoicebotSync\Sources\SourceResolver;
+use Monoverse\VoicebotSync\Support\DeadLetter;
+use Monoverse\VoicebotSync\Support\SecretStore;
+use Monoverse\VoicebotSync\Support\Watermark;
+use Monoverse\VoicebotSync\Sync\DeltaSync;
+use Monoverse\VoicebotSync\Sync\FullSync;
+use Monoverse\VoicebotSync\Sync\NdjsonStreamWriter;
+use Monoverse\VoicebotSync\Sync\SyncRunner;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
+
+final class VoiceBotSyncServiceProvider extends PackageServiceProvider
+{
+    public function configurePackage(Package $package): void
+    {
+        $package
+            ->name('voicebot')
+            ->hasConfigFile()
+            ->hasMigrations([
+                'create_voicebot_connections_table',
+                'create_voicebot_sync_state_table',
+                'create_voicebot_dead_letter_table',
+            ])
+            ->runsMigrations()
+            ->hasCommands([
+                PairCommand::class,
+                UnpairCommand::class,
+                SyncCommand::class,
+                DoctorCommand::class,
+            ]);
+    }
+
+    public function packageRegistered(): void
+    {
+        $this->app->singleton(SecretStore::class);
+        $this->app->singleton(Watermark::class);
+        $this->app->singleton(NdjsonStreamWriter::class);
+
+        $this->app->singleton(DeadLetter::class, static function (Container $app): DeadLetter {
+            /** @var Config $config */
+            $config = $app->make('config');
+
+            return new DeadLetter(self::cfgInt($config, 'voicebot.sync.dead_letter_max_attempts', 5));
+        });
+
+        $this->app->singleton(SourceResolver::class, static fn (Container $app): SourceResolver => new SourceResolver($app));
+
+        $this->app->singleton(IngestClient::class, static function (Container $app): IngestClient {
+            /** @var Config $config */
+            $config = $app->make('config');
+            /** @var array<string, mixed> $http */
+            $http = $config->get('voicebot.http', []);
+
+            $siteUrl = self::cfgStr($config, 'voicebot.site_url', '');
+
+            return new IngestClient(
+                $app->make(SecretStore::class),
+                self::cfgStr($config, 'voicebot.base_url', ''),
+                $http,
+                $siteUrl === '' ? null : $siteUrl,
+            );
+        });
+
+        $this->app->singleton(FullSync::class, static fn (Container $app): FullSync => new FullSync(
+            $app->make(IngestClient::class),
+            $app->make(NdjsonStreamWriter::class),
+            $app->make(Watermark::class),
+        ));
+
+        $this->app->singleton(DeltaSync::class, static function (Container $app): DeltaSync {
+            /** @var Config $config */
+            $config = $app->make('config');
+
+            return new DeltaSync(
+                $app->make(IngestClient::class),
+                $app->make(Watermark::class),
+                $app->make(DeadLetter::class),
+                self::cfgInt($config, 'voicebot.sync.batch_max_ops', 500),
+                self::cfgInt($config, 'voicebot.sync.batch_max_bytes', 5_242_880),
+            );
+        });
+
+        $this->app->singleton(SyncRunner::class, static fn (Container $app): SyncRunner => new SyncRunner(
+            $app->make(SourceResolver::class),
+            $app->make(FullSync::class),
+            $app->make(DeltaSync::class),
+            $app->make(Config::class),
+        ));
+    }
+
+    private static function cfgInt(Config $config, string $key, int $default): int
+    {
+        $value = $config->get($key, $default);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    private static function cfgStr(Config $config, string $key, string $default): string
+    {
+        $value = $config->get($key, $default);
+
+        return is_scalar($value) ? (string) $value : $default;
+    }
+}

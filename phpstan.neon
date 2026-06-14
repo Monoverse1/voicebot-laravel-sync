@@ -1,0 +1,10 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+    # Larastan 3 / PHPStan 2: iterable value types are enforced at max level by
+    # default, so checkMissingIterableValueType is no longer a valid key here.
+    treatPhpDocTypesAsCertain: false

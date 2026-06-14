@@ -1,0 +1,11 @@
+# Keep the Composer/Packagist tarball lean — dev-only files are export-ignored.
+/tests              export-ignore
+/.github            export-ignore
+phpunit.xml.dist    export-ignore
+phpstan.neon        export-ignore
+pint.json           export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+
+*.php text eol=lf
+*.stub text eol=lf

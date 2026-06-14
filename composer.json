@@ -1,0 +1,50 @@
+{
+    "name": "monoverse/voicebot-laravel-sync",
+    "description": "Sync your Laravel catalog and content to VoiceBot for an AI sales assistant — signed, incremental, swiss-watch reliable.",
+    "type": "library",
+    "license": "proprietary",
+    "keywords": ["laravel", "voicebot", "catalog", "sync", "ecommerce", "ai"],
+    "authors": [
+        {"name": "Monoverse", "homepage": "https://monoverse.tech"}
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^10.0 || ^11.0 || ^12.0",
+        "illuminate/support": "^10.0 || ^11.0 || ^12.0",
+        "illuminate/console": "^10.0 || ^11.0 || ^12.0",
+        "illuminate/http": "^10.0 || ^11.0 || ^12.0",
+        "illuminate/database": "^10.0 || ^11.0 || ^12.0",
+        "guzzlehttp/guzzle": "^7.5",
+        "guzzlehttp/psr7": "^2.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.22 || ^9.0 || ^10.0",
+        "pestphp/pest": "^2.34 || ^3.0",
+        "pestphp/pest-plugin-laravel": "^2.4 || ^3.0",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.13"
+    },
+    "autoload": {
+        "psr-4": {"Monoverse\\VoicebotSync\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Monoverse\\VoicebotSync\\Tests\\": "tests/"}
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Monoverse\\VoicebotSync\\VoiceBotSyncServiceProvider"]
+        }
+    },
+    "scripts": {
+        "analyse": "phpstan analyse",
+        "test": "pest",
+        "format": "pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {"pestphp/pest-plugin": true}
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
