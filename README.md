@@ -25,7 +25,10 @@ LLM SDK; it only streams your data to the ingest endpoint.
 - Laravel 10, 11 or 12
 - An `APP_KEY` (used to encrypt the stored shared secret)
 
-## Install
+## Install from Packagist
+
+The package is published on public [Packagist](https://packagist.org/packages/monoverse/voicebot-laravel-sync)
+as `monoverse/voicebot-laravel-sync` — install it with a plain Composer require:
 
 ```bash
 composer require monoverse/voicebot-laravel-sync
@@ -224,10 +227,14 @@ All knobs are env-overridable; see `config/voicebot.php`. Key ones:
 
 ## Publishing (maintainers)
 
-This package lives in the VoiceBot monorepo at `packages/laravel-sync/`. It is published to
-Packagist via a **read-only subtree split** of this directory into a standalone repository
-(e.g. `monoverse/voicebot-laravel-sync`). Tag releases on the split repo (`v0.1.0`, …);
-do not tag the monorepo for package releases. Develop here, split + tag to ship.
+This package lives in the VoiceBot monorepo at `packages/laravel-sync/` and is published to
+public Packagist via a **read-only subtree split** of this directory into the standalone
+mirror repo `Monoverse1/voicebot-laravel-sync`. Releases are **tag-driven**: push a
+monorepo tag `laravel-sync-vX.Y.Z` and the
+[`publish-laravel-sync` workflow](../../.github/workflows/publish-laravel-sync.yml) splits +
+mirrors the tag, which Packagist then indexes. The full runbook (one-time Packagist setup,
+required secrets/vars, the release flow) is in [`PUBLISHING.md`](./PUBLISHING.md);
+v0.1.0 was seeded manually and is already live on the mirror.
 
 ## License
 
