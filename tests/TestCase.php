@@ -9,16 +9,6 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Exercise the real consumer install flow: publish the package's .php.stub
-        // migrations (datetime-stamped into the app), then migrate.
-        $this->artisan('vendor:publish', ['--tag' => 'voicebot-migrations', '--force' => true])->run();
-        $this->artisan('migrate')->run();
-    }
-
     /** @return list<class-string> */
     protected function getPackageProviders($app): array
     {

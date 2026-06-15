@@ -24,23 +24,40 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 final class VoiceBotSyncServiceProvider extends PackageServiceProvider
 {
+    private const MIGRATION_FILES = [
+        '2025_01_01_000000_create_voicebot_connections_table.php',
+        '2025_01_01_000001_create_voicebot_sync_state_table.php',
+        '2025_01_01_000002_create_voicebot_dead_letter_table.php',
+    ];
+
     public function configurePackage(Package $package): void
     {
         $package
             ->name('voicebot')
             ->hasConfigFile()
-            ->hasMigrations([
-                'create_voicebot_connections_table',
-                'create_voicebot_sync_state_table',
-                'create_voicebot_dead_letter_table',
-            ])
-            ->runsMigrations()
             ->hasCommands([
                 PairCommand::class,
                 UnpairCommand::class,
                 SyncCommand::class,
                 DoctorCommand::class,
             ]);
+    }
+
+    public function packageBooted(): void
+    {
+        $dir = __DIR__.'/../database/migrations';
+        $this->loadMigrationsFrom($dir);
+
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $map = [];
+        foreach (self::MIGRATION_FILES as $file) {
+            $map["{$dir}/{$file}"] = database_path("migrations/{$file}");
+        }
+
+        $this->publishes($map, 'voicebot-migrations');
     }
 
     public function packageRegistered(): void

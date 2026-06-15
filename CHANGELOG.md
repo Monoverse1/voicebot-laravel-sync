@@ -3,6 +3,27 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-06-15
+
+### Fixed
+
+- **Zero-publish `php artisan migrate` now creates the tables.** Migrations ship as
+  timestamped `.php` files (`2025_01_01_0000NN_create_voicebot_*_table.php`) and are
+  registered directly via `loadMigrationsFrom()` in `packageBooted()`. The previous
+  `.php.stub` files (registered through Spatie `hasMigrations()->runsMigrations()`) were
+  silently dropped by Laravel 10–13's `Migrator`, which only globs `*.php`, so a plain
+  `migrate` created none of `voicebot_connections`, `voicebot_sync_state`,
+  `voicebot_dead_letter`. The documented zero-publish flow now works as written.
+- **Publishing can no longer double-run a migration.** The `voicebot-migrations` publish
+  group now copies each file verbatim to an app path with the **identical basename**, so
+  the published copy shares the package migration's name. The `Migrator` collapses the two
+  by name (`keyBy(getMigrationName)`), so `vendor:publish` followed by `migrate` creates
+  each table exactly once (no "table already exists").
+
+### Changed
+
+- `Protocol::CLIENT_VERSION` → `0.2.1` (sent as `X-VoiceBot-Plugin-Version`).
+
 ## [0.2.0] - 2026-06-15
 
 ### Added

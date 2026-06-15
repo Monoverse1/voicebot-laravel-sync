@@ -58,7 +58,7 @@ final class Protocol
     /** Identifies this producer on the wire (X-VoiceBot-Plugin-Version). */
     public const CLIENT_NAME = 'laravel-sync';
 
-    public const CLIENT_VERSION = '0.2.0';
+    public const CLIENT_VERSION = '0.2.1';
 
     public static function pluginVersionHeader(): string
     {
