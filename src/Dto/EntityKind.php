@@ -22,6 +22,7 @@ enum EntityKind: string
     case Menu = 'menu';
     case MenuItem = 'menu_item';
     case Site = 'site';
+    case HostProfile = 'host_profile';
     case ShippingMethod = 'shipping_method';
     case PaymentMethod = 'payment_method';
 
@@ -39,7 +40,7 @@ enum EntityKind: string
             self::MenuItem => ['label', 'menu_external_id'],
             self::Variation => ['parent_external_id'],
             self::ShippingMethod, self::PaymentMethod => ['label'],
-            self::Site => [],
+            self::Site, self::HostProfile => [],
         };
     }
 }
