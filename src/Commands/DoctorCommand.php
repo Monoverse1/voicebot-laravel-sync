@@ -9,6 +9,7 @@ use Monoverse\VoicebotSync\Contracts\EntitySource;
 use Monoverse\VoicebotSync\Dto\CanonicalEntity;
 use Monoverse\VoicebotSync\Dto\EntityKind;
 use Monoverse\VoicebotSync\Http\IngestClient;
+use Monoverse\VoicebotSync\Sources\HostProfileSource;
 use Monoverse\VoicebotSync\Support\SecretStore;
 use Monoverse\VoicebotSync\Sync\SyncRunner;
 use Throwable;
@@ -88,8 +89,16 @@ final class DoctorCommand extends Command
 
             return;
         }
+        $hasHostProfile = false;
         foreach ($sources as $source) {
             $this->checkSource($source);
+            if ($source instanceof HostProfileSource) {
+                $hasHostProfile = true;
+            }
+        }
+
+        if (! $hasHostProfile) {
+            $this->warnLine('host_profile', 'not enabled — the bot will only use catalog and navigation tools; enable voicebot.entities.host_profile to grant cart/checkout/variant capabilities');
         }
     }
 

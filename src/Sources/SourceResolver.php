@@ -59,6 +59,10 @@ final class SourceResolver
             return $instance;
         }
 
+        if ($kind === EntityKind::HostProfile) {
+            return HostProfileSource::fromConfig($config);
+        }
+
         return new ConfigEloquentSource($kind, $config, new EntityMapper($kind, $config), $chunkSize);
     }
 }

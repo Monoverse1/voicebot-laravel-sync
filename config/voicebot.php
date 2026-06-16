@@ -196,6 +196,13 @@ return [
                 // 'payload.content_text' => fn ($m) => trim(strip_tags((string) $m->body)),
             ],
         ],
+        EntityKind::HostProfile->value => [
+            'enabled' => false,
+            'source' => null,
+            'capabilities' => [],
+            'cart_endpoint' => null,
+            'metadata' => [],
+        ],
         // `site` is a single record, not a per-row table. The config source wraps a row
         // id to laravel:site:{id}; for one global row that is fine, but if you have no
         // such model, bind a tiny custom EntitySource instead (see the mapping docs).
