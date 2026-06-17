@@ -3,6 +3,35 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Declarative multilingual catalogs (no custom `EntitySource`).** A `translations` block
+  (`locales`, `base_locale`, optional `present`) fans one model row out to a base entity plus one per
+  locale — `lang` + `translation_of` are set automatically and each translation gets a
+  `{base}:{locale}` external id. Map closures now receive `($model, $locale)`. `EntityMapper::mapRows()`
+  is the new fan-out entry point; `map()` still returns the base entity. Soft-delete now emits a delete
+  per emitted locale id and respects the configured `external_id`.
+- **Declarative variant grouping.** A `variations` block (`items`, `external_id`, `axes`, `fields`)
+  builds the canonical `variant_axes` + inline `variations[]` from a relation, so configurable products
+  no longer need a custom `EntitySource`. The axis display name is shared between `variant_axes` and each
+  variation's `attributes` — the key `select_variant` resolves on.
+- **Config map presets.** `Mapping\Presets::product()` / `category()` / `page()` turn a few column names
+  into the full canonical map (money → integer minor units, content → plain text, taxonomy → slug lists,
+  stock → status) — a common catalog map drops from ~40 lines to ~5. Merge your own closures to extend.
+- **`Mapping\ExternalId` helper.** `format()` / `parse()` / `isValid()` for the `producer:kind:id`
+  external_id grammar, pinned to the contract (`docs/contracts/tools_contract.json#external_id_grammar`)
+  by a drift test. `EntityMapper` now formats ids through it.
+- **`php artisan voicebot:install`** — one-command onboarding: publishes the config, runs the package
+  migrations, and runs a guided pairing, then prints the next steps. Wires nothing into the host's files.
+- **Self-registering schedule.** Set `VOICEBOT_SCHEDULE_ENABLED=true` (config block `voicebot.schedule`)
+  and the package registers the incremental delta + nightly full sync itself — no `routes/console.php`
+  edit. Cadence configurable via `VOICEBOT_SCHEDULE_DELTA_CRON` / `VOICEBOT_SCHEDULE_FULL_CRON`. Still
+  requires the system cron tick (`* * * * * php artisan schedule:run`).
+- **`voicebot:doctor` flags decimal money.** Warns when a mapped `*price*` / `*_amount` field looks like
+  a decimal instead of integer minor units (the common ×100 mapping mistake).
+
 ## [0.2.1] - 2026-06-15
 
 ### Fixed

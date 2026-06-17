@@ -47,6 +47,16 @@ return [
         'dead_letter_max_attempts' => (int) env('VOICEBOT_DEAD_LETTER_MAX_ATTEMPTS', 5),
     ],
 
+    // The package can register its OWN scheduled sync — no need to touch routes/console.php.
+    // Flip `enabled` on and run a scheduler (the system cron `* * * * * php artisan schedule:run`,
+    // or a `php artisan schedule:work` worker). Off by default, so nothing runs until you opt in.
+    'schedule' => [
+        'enabled' => (bool) env('VOICEBOT_SCHEDULE_ENABLED', false),
+        // Incremental delta cadence + the nightly full snapshot (cron expressions).
+        'delta_cron' => env('VOICEBOT_SCHEDULE_DELTA_CRON', '*/15 * * * *'),
+        'full_cron' => env('VOICEBOT_SCHEDULE_FULL_CRON', '0 3 * * *'),
+    ],
+
     /*
      * Per-kind producers. Disable kinds you do not have. `model` + `map` drive the
      * default config source; `source` (a container-bound class implementing the

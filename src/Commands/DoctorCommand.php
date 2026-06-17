@@ -143,6 +143,37 @@ final class DoctorCommand extends Command
 
         $this->pass($label, "{$count} rows, sample maps cleanly");
         $this->line('    '.$this->sampleJson($sample));
+        $this->checkMoneyUnits($label, $sample);
+    }
+
+    private function checkMoneyUnits(string $label, CanonicalEntity $sample): void
+    {
+        foreach ($sample->payload as $key => $value) {
+            if (is_string($key) && $this->isMoneyKey($key) && $this->looksLikeDecimalMoney($value)) {
+                $this->warnLine(
+                    $label,
+                    "payload.{$key} looks like a decimal — money must be INTEGER minor units ".
+                    '(199.99 → 19999). Map with fn ($m) => (int) round($m->price * 100).'
+                );
+            }
+        }
+    }
+
+    private function isMoneyKey(string $key): bool
+    {
+        return str_ends_with($key, '_amount') || str_contains($key, 'price');
+    }
+
+    private function looksLikeDecimalMoney(mixed $value): bool
+    {
+        if (is_float($value)) {
+            return fmod($value, 1.0) !== 0.0;
+        }
+        if (is_string($value) && preg_match('/^-?\d+\.(\d+)$/', $value, $m) === 1) {
+            return rtrim($m[1], '0') !== '';
+        }
+
+        return false;
     }
 
     /**

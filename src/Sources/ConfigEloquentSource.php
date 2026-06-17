@@ -17,9 +17,10 @@ use Monoverse\VoicebotSync\Mapping\EntityMapper;
 
 /**
  * Default, config-driven source: reads an Eloquent model and maps each row via
- * EntityMapper. Streams with lazyById so the full catalog never lands in memory.
- * Detects deletes only when the model uses SoftDeletes; hard deletes are
- * reconciled by the nightly full snapshot's server-side tombstone pass.
+ * EntityMapper. Streams with lazyById so the full catalog never lands in memory. A
+ * single row may fan out to several canonical entities (a multilingual base + its
+ * translations). Detects deletes only when the model uses SoftDeletes; hard deletes
+ * are reconciled by the nightly full snapshot's server-side tombstone pass.
  */
 final class ConfigEloquentSource implements EntitySource
 {
@@ -47,8 +48,8 @@ final class ConfigEloquentSource implements EntitySource
             $query->where($this->updatedAtColumn(), '>', $since);
         }
 
-        return $query->lazyById($this->chunkSize)->map(
-            fn (Model $model): CanonicalEntity => $this->mapper->map($model),
+        return $query->lazyById($this->chunkSize)->flatMap(
+            fn (Model $model): array => $this->mapper->mapRows($model),
         );
     }
 
@@ -65,10 +66,10 @@ final class ConfigEloquentSource implements EntitySource
         $query = $class::onlyTrashed(); // @phpstan-ignore staticMethod.notFound
         $query->where('deleted_at', '>', $since);
 
-        return $query->lazyById($this->chunkSize)->map(
-            fn (Model $model): array => CanonicalEntity::deleteOperation(
-                $this->kind,
-                sprintf('laravel:%s:%s', $this->kind->value, $this->stringKey($model)),
+        return $query->lazyById($this->chunkSize)->flatMap(
+            fn (Model $model): array => array_map(
+                fn (string $externalId): array => CanonicalEntity::deleteOperation($this->kind, $externalId),
+                $this->mapper->externalIds($model),
             ),
         );
     }
@@ -88,13 +89,6 @@ final class ConfigEloquentSource implements EntitySource
         }
 
         return $relations;
-    }
-
-    private function stringKey(Model $model): string
-    {
-        $key = $model->getKey();
-
-        return is_scalar($key) ? (string) $key : '';
     }
 
     public function expectedCount(): int

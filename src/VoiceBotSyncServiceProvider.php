@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Monoverse\VoicebotSync;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
 use Monoverse\VoicebotSync\Commands\DoctorCommand;
+use Monoverse\VoicebotSync\Commands\InstallCommand;
 use Monoverse\VoicebotSync\Commands\PairCommand;
 use Monoverse\VoicebotSync\Commands\SyncCommand;
 use Monoverse\VoicebotSync\Commands\UnpairCommand;
@@ -36,6 +38,7 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
             ->name('voicebot')
             ->hasConfigFile()
             ->hasCommands([
+                InstallCommand::class,
                 PairCommand::class,
                 UnpairCommand::class,
                 SyncCommand::class,
@@ -48,6 +51,8 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
         $dir = __DIR__.'/../database/migrations';
         $this->loadMigrationsFrom($dir);
 
+        $this->registerSchedule();
+
         if (! $this->app->runningInConsole()) {
             return;
         }
@@ -58,6 +63,25 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
         }
 
         $this->publishes($map, 'voicebot-migrations');
+    }
+
+    private function registerSchedule(): void
+    {
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            /** @var Config $config */
+            $config = $this->app->make('config');
+            if (! $config->get('voicebot.schedule.enabled', false)) {
+                return;
+            }
+
+            $schedule->command('voicebot:sync')
+                ->cron(self::cfgStr($config, 'voicebot.schedule.delta_cron', '*/15 * * * *'))
+                ->withoutOverlapping();
+
+            $schedule->command('voicebot:sync --full')
+                ->cron(self::cfgStr($config, 'voicebot.schedule.full_cron', '0 3 * * *'))
+                ->withoutOverlapping();
+        });
     }
 
     public function packageRegistered(): void
