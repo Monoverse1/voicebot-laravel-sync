@@ -70,6 +70,7 @@ it('pairs by publishable key and stores the secret encrypted', function (): void
 
         return str_contains((string) $request->url(), '/api/v1/ingest/pair-by-key')
             && ($body['public_key'] ?? null) === 'pk_live_storefront'
+            && ($body['provider_id'] ?? null) === 'laravel'
             && ! array_key_exists('pair_code', $body);
     });
 

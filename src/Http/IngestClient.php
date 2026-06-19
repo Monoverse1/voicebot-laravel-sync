@@ -49,6 +49,7 @@ final class IngestClient
         $body = array_merge([
             'pair_code' => $pairCode,
             'site_url' => $siteUrl,
+            'provider_id' => Protocol::PROVIDER_ID,
             'plugin_version' => Protocol::pluginVersionHeader(),
             'php_version' => PHP_VERSION,
         ], $metadata);
@@ -81,6 +82,7 @@ final class IngestClient
         $body = array_merge([
             'public_key' => $publicKey,
             'site_url' => $siteUrl,
+            'provider_id' => Protocol::PROVIDER_ID,
             'plugin_version' => Protocol::pluginVersionHeader(),
             'php_version' => PHP_VERSION,
         ], $metadata);

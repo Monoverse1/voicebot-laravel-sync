@@ -57,6 +57,9 @@ final class Protocol
 
     public const MAX_FULL_BYTES = 209_715_200;
 
+    /** Canonical backend this producer pairs as; recorded on the provider connection. */
+    public const PROVIDER_ID = 'laravel';
+
     /** Identifies this producer on the wire (X-VoiceBot-Plugin-Version). */
     public const CLIENT_NAME = 'laravel-sync';
 

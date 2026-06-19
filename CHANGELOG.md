@@ -3,6 +3,15 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-06-19
+
+### Changed
+
+- **Declare the canonical provider on pairing.** Both `voicebot:pair` paths now send
+  `provider_id = "laravel"`, so the backend records the connection as a Laravel
+  producer instead of defaulting it to `woocommerce`. Fixes catalog-resolve trying to
+  pull a non-existent WooCommerce API for Laravel sites.
+
 ## [0.5.0] - 2026-06-19
 
 ### Added
