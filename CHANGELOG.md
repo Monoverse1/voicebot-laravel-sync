@@ -3,6 +3,33 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-19
+
+### Added
+
+- **Pair by publishable key (`pk_...`).** `voicebot:pair` now accepts a publishable key and
+  calls the new backend `POST /api/v1/ingest/pair-by-key` (mints the same connection as the
+  legacy pair-code path, gated on the key's bound `canonical_domain`). The command resolves
+  the pairing credential in order CLI argument → `VOICEBOT_PUBLIC_KEY` → `VOICEBOT_PAIR_CODE`,
+  branching to pair-by-key when the credential starts with `pk_`. `IngestClient::pairByKey()`
+  mirrors the unsigned, retry-on-5xx `pair()` path and surfaces the backend error codes
+  `invalid_key` (401), `domain_mismatch` (403) and `key_has_no_domain` (409) as distinct,
+  actionable messages; a domain mismatch prints a hint to align `VOICEBOT_SITE_URL` with the
+  key's bound storefront domain. New config knob `VOICEBOT_PUBLIC_KEY` / `voicebot.public_key`
+  and protocol constant `Protocol::PATH_PAIR_BY_KEY`.
+
+### Changed
+
+- **`voicebot:pair` argument renamed `code` → `credential`** (accepts a `pk_...` key or a
+  legacy `VB-XXXX-XXXX` code); `voicebot:install` `--code` option renamed `--key`.
+- `Protocol::CLIENT_VERSION` → `0.3.0` (sent as `X-VoiceBot-Plugin-Version`).
+
+### Retained
+
+- **Legacy pair-code path unchanged.** `POST /api/v1/ingest/pair` (`VB-XXXX-XXXX`) still works
+  end to end; catalog-sync HMAC signing is unchanged and already-paired installs keep their
+  stored shared secret (no re-pair required).
+
 ## [0.4.0] - 2026-06-17
 
 ### Added

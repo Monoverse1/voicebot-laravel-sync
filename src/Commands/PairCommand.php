@@ -12,21 +12,24 @@ use Monoverse\VoicebotSync\Support\SecretStore;
 use Throwable;
 
 /**
- * Pairing handshake. Consumes a one-time VB-XXXX-XXXX code, persists the minted
- * tenant id + shared secret (encrypted via SecretStore), and prints the tenant id.
- * The shared secret is NEVER printed or logged.
+ * Pairing handshake. Accepts a publishable key (pk_...) — gated on the key's bound
+ * domain — or a legacy one-time VB-XXXX-XXXX code, persists the minted tenant id +
+ * shared secret (encrypted via SecretStore), and prints the tenant id. The shared
+ * secret is NEVER printed or logged.
  */
 final class PairCommand extends Command
 {
-    protected $signature = 'voicebot:pair {code? : One-time pair code (VB-XXXX-XXXX); falls back to VOICEBOT_PAIR_CODE}';
+    private const PUBLIC_KEY_PREFIX = 'pk_';
 
-    protected $description = 'Pair this app with VoiceBot using a one-time code';
+    protected $signature = 'voicebot:pair {credential? : Publishable key (pk_...) or legacy pair code (VB-XXXX-XXXX); falls back to VOICEBOT_PUBLIC_KEY then VOICEBOT_PAIR_CODE}';
+
+    protected $description = 'Pair this app with VoiceBot using a publishable key (pk_...) or a one-time pair code';
 
     public function handle(IngestClient $client, SecretStore $secrets, Config $config): int
     {
-        $code = $this->resolveCode($config);
-        if ($code === null) {
-            $this->error('No pair code. Pass it as an argument or set VOICEBOT_PAIR_CODE.');
+        $credential = $this->resolveCredential($config);
+        if ($credential === null) {
+            $this->error('No pairing credential. Pass a pk_ key or pair code as an argument, or set VOICEBOT_PUBLIC_KEY / VOICEBOT_PAIR_CODE.');
 
             return self::INVALID;
         }
@@ -45,11 +48,18 @@ final class PairCommand extends Command
             return self::INVALID;
         }
 
+        $byKey = str_starts_with($credential, self::PUBLIC_KEY_PREFIX);
+
         try {
-            $result = $client->pair($code, $siteUrl, $this->metadata());
+            $result = $byKey
+                ? $client->pairByKey($credential, $siteUrl, $this->metadata())
+                : $client->pair($credential, $siteUrl, $this->metadata());
         } catch (ConfigException $e) {
-            // Bad/used code, malformed response, insecure URL — the operator must act.
+            // Bad/used credential, domain mismatch, malformed response, insecure URL — the operator must act.
             $this->error('Pairing failed: '.$e->getMessage());
+            if (str_contains($e->getMessage(), 'domain_mismatch')) {
+                $this->line('  Hint: VOICEBOT_SITE_URL must match the storefront domain bound to this key (got: '.$siteUrl.').');
+            }
 
             return self::INVALID;
         } catch (Throwable $e) {
@@ -76,12 +86,21 @@ final class PairCommand extends Command
         return self::SUCCESS;
     }
 
-    private function resolveCode(Config $config): ?string
+    private function resolveCredential(Config $config): ?string
     {
-        $arg = $this->argument('code');
-        $code = is_string($arg) && $arg !== '' ? $arg : $config->get('voicebot.pair_code');
+        $arg = $this->argument('credential');
+        if (is_string($arg) && $arg !== '') {
+            return trim($arg);
+        }
 
-        return is_string($code) && $code !== '' ? trim($code) : null;
+        foreach (['voicebot.public_key', 'voicebot.pair_code'] as $key) {
+            $value = $config->get($key);
+            if (is_string($value) && $value !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 
     /** @return array<string, string> */

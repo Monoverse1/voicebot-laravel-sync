@@ -17,7 +17,10 @@ return [
     // Backend ingest base URL. Default = VoiceBot production.
     'base_url' => env('VOICEBOT_BASE_URL', 'https://api.monoverse.tech'),
 
-    // One-time pair code (VB-XXXX-XXXX) for non-interactive `voicebot:pair` (CI).
+    // Publishable key (pk_...) for pair-by-key; the preferred non-interactive pairing path.
+    'public_key' => env('VOICEBOT_PUBLIC_KEY'),
+
+    // One-time pair code (VB-XXXX-XXXX) for non-interactive `voicebot:pair` (CI). Legacy fallback.
     'pair_code' => env('VOICEBOT_PAIR_CODE'),
 
     // Sent as X-VoiceBot-Site-Url on every request; defaults to APP_URL.

@@ -51,15 +51,26 @@ required; publish them only if you want to customise the schema.
 
 ## Pair
 
-Get a one-time pair code (`VB-XXXX-XXXX`) from your VoiceBot dashboard, then:
+Copy your **publishable key** (`pk_...`) from your VoiceBot dashboard, then:
 
 ```bash
-php artisan voicebot:pair VB-XXXX-XXXX
+php artisan voicebot:pair pk_...
 ```
 
 The command stores your tenant id + shared secret (encrypted) and prints the tenant id.
 **The shared secret is never printed or logged.** For non-interactive CI, set
-`VOICEBOT_PAIR_CODE` and run `php artisan voicebot:pair`.
+`VOICEBOT_PUBLIC_KEY` and run `php artisan voicebot:pair`.
+
+`VOICEBOT_SITE_URL` (defaults to `APP_URL`) is sent as the storefront `site_url` and must
+match the domain bound to the key in your dashboard (apex/`www` are treated as equal). A
+mismatch fails with a clear `domain_mismatch` hint — point `VOICEBOT_SITE_URL` at the
+registered storefront domain.
+
+> **Legacy fallback.** The earlier one-time pair code (`VB-XXXX-XXXX`, env
+> `VOICEBOT_PAIR_CODE`) still works: pass it as the argument or set the env var.
+> Pairing resolves the credential in order: CLI argument → `VOICEBOT_PUBLIC_KEY` →
+> `VOICEBOT_PAIR_CODE`. Already-paired installs keep their stored secret — re-pairing is
+> not required.
 
 ## Map your models
 
@@ -219,8 +230,9 @@ All knobs are env-overridable; see `config/voicebot.php`. Key ones:
 | Env | Default | Purpose |
 |-----|---------|---------|
 | `VOICEBOT_BASE_URL` | `https://api.monoverse.tech` | Ingest base URL |
-| `VOICEBOT_PAIR_CODE` | — | Non-interactive pairing (CI) |
-| `VOICEBOT_SITE_URL` | `APP_URL` | Sent as `X-VoiceBot-Site-Url` |
+| `VOICEBOT_PUBLIC_KEY` | — | Publishable key (`pk_...`) for pair-by-key (preferred) |
+| `VOICEBOT_PAIR_CODE` | — | Legacy one-time pair code (CI fallback) |
+| `VOICEBOT_SITE_URL` | `APP_URL` | Sent as `site_url` / `X-VoiceBot-Site-Url`; must match the key's bound domain |
 | `VOICEBOT_SYNC_CHUNK_SIZE` | `200` | Rows per DB chunk while streaming |
 | `VOICEBOT_SYNC_QUEUE` | default | Queue connection for `--queue` |
 | `VOICEBOT_CURRENCY` | `UAH` | Convenience for example maps |

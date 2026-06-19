@@ -65,14 +65,76 @@ final class IngestClient
             ->post(Protocol::PATH_PAIR);
 
         $data = $this->decode($response, 'pair');
+
+        return $this->assertPairResponse($data, 'pair');
+    }
+
+    /**
+     * Unauthenticated pair-by-key handshake. Mints the same connection as the legacy
+     * pair-code path, gated on the publishable key's canonical domain.
+     *
+     * @param  array<string, mixed>  $metadata
+     * @return array{tenant_id: string, shared_secret_b64: string, ingest_url: string}
+     */
+    public function pairByKey(string $publicKey, string $siteUrl, array $metadata = []): array
+    {
+        $body = array_merge([
+            'public_key' => $publicKey,
+            'site_url' => $siteUrl,
+            'plugin_version' => Protocol::pluginVersionHeader(),
+            'php_version' => PHP_VERSION,
+        ], $metadata);
+
+        $bodyString = $this->encode($body);
+        // pairByKey() is unsigned (no nonce consumed) → safe to retry on 429/5xx.
+        $response = $this->base($this->assertSecure($this->configBaseUrl), retryOnHttpError: true)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                Protocol::HEADER_PROTOCOL => Protocol::VERSION,
+                Protocol::HEADER_PLUGIN_VER => Protocol::pluginVersionHeader(),
+            ])
+            ->withBody($bodyString, 'application/json')
+            ->post(Protocol::PATH_PAIR_BY_KEY);
+
+        if ($response->failed()) {
+            throw $this->pairByKeyError($response);
+        }
+
+        $json = $response->json();
+        /** @var array<string, mixed> $data */
+        $data = is_array($json) ? $json : [];
+
+        return $this->assertPairResponse($data, 'pair-by-key');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{tenant_id: string, shared_secret_b64: string, ingest_url: string}
+     */
+    private function assertPairResponse(array $data, string $op): array
+    {
         foreach (['tenant_id', 'shared_secret_b64', 'ingest_url'] as $key) {
             if (! isset($data[$key]) || ! is_string($data[$key])) {
-                throw new ConfigException("pair response missing `{$key}`");
+                throw new ConfigException("{$op} response missing `{$key}`");
             }
         }
 
         /** @var array{tenant_id: string, shared_secret_b64: string, ingest_url: string} $data */
         return $data;
+    }
+
+    private function pairByKeyError(Response $response): VoicebotSyncException
+    {
+        $status = $response->status();
+        $code = $this->errorCode($response);
+        $message = match (true) {
+            $status === 401 || $code === 'invalid_key' => 'invalid_key: the publishable key is unknown or inactive. Check VOICEBOT_PUBLIC_KEY in your VoiceBot dashboard.',
+            $status === 403 || $code === 'domain_mismatch' => 'domain_mismatch: site_url does not match the domain bound to this key. Set VOICEBOT_SITE_URL to the storefront domain registered for this key.',
+            $status === 409 || $code === 'key_has_no_domain' => 'key_has_no_domain: this publishable key has no bound domain yet. Set its canonical domain in the VoiceBot dashboard before pairing.',
+            default => "pair-by-key failed ({$status} {$code})",
+        };
+
+        return $this->classify($status, $message);
     }
 
     /**

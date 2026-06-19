@@ -14,7 +14,7 @@ use Monoverse\VoicebotSync\Support\SecretStore;
  */
 final class InstallCommand extends Command
 {
-    protected $signature = 'voicebot:install {--code= : One-time pair code (VB-XXXX-XXXX); skips the prompt}';
+    protected $signature = 'voicebot:install {--key= : Publishable key (pk_...) or legacy pair code (VB-XXXX-XXXX); skips the prompt}';
 
     protected $description = 'Set up VoiceBot: publish config, migrate, and pair';
 
@@ -31,14 +31,14 @@ final class InstallCommand extends Command
 
         if ($secrets->isPaired()) {
             $this->step('pairing', 'already paired (tenant '.$secrets->tenantId().')');
-        } elseif (($code = $this->resolveCode()) !== null) {
-            if ($this->call('voicebot:pair', ['code' => $code]) !== self::SUCCESS) {
+        } elseif (($credential = $this->resolveCredential()) !== null) {
+            if ($this->call('voicebot:pair', ['credential' => $credential]) !== self::SUCCESS) {
                 $this->error('Pairing failed — fix the error above, then re-run `php artisan voicebot:pair`.');
 
                 return self::FAILURE;
             }
         } else {
-            $this->skip('pairing', 'no code — run `php artisan voicebot:pair <VB-XXXX-XXXX>` when ready');
+            $this->skip('pairing', 'no key — run `php artisan voicebot:pair <pk_...>` when ready');
         }
 
         $this->newLine();
@@ -52,16 +52,16 @@ final class InstallCommand extends Command
         return self::SUCCESS;
     }
 
-    private function resolveCode(): ?string
+    private function resolveCredential(): ?string
     {
-        $opt = $this->option('code');
+        $opt = $this->option('key');
         if (is_string($opt) && trim($opt) !== '') {
             return trim($opt);
         }
         if (! $this->input->isInteractive()) {
             return null;
         }
-        $answer = $this->ask('Paste your one-time pair code (VB-XXXX-XXXX), or leave blank to pair later');
+        $answer = $this->ask('Paste your publishable key (pk_...) or one-time pair code (VB-XXXX-XXXX), or leave blank to pair later');
 
         return is_string($answer) && trim($answer) !== '' ? trim($answer) : null;
     }

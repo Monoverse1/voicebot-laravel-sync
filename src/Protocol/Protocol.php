@@ -19,6 +19,8 @@ final class Protocol
 
     public const PATH_PAIR = '/api/v1/ingest/pair';
 
+    public const PATH_PAIR_BY_KEY = '/api/v1/ingest/pair-by-key';
+
     public const PATH_INIT = '/api/v1/ingest/init';
 
     public const PATH_FINALIZE = '/api/v1/ingest/finalize';
@@ -58,7 +60,7 @@ final class Protocol
     /** Identifies this producer on the wire (X-VoiceBot-Plugin-Version). */
     public const CLIENT_NAME = 'laravel-sync';
 
-    public const CLIENT_VERSION = '0.2.1';
+    public const CLIENT_VERSION = '0.3.0';
 
     public static function pluginVersionHeader(): string
     {
