@@ -13,6 +13,7 @@ use Monoverse\VoicebotSync\Commands\PairCommand;
 use Monoverse\VoicebotSync\Commands\SyncCommand;
 use Monoverse\VoicebotSync\Commands\UnpairCommand;
 use Monoverse\VoicebotSync\Http\IngestClient;
+use Monoverse\VoicebotSync\Protocol\InboundVerifier;
 use Monoverse\VoicebotSync\Sources\SourceResolver;
 use Monoverse\VoicebotSync\Support\DeadLetter;
 use Monoverse\VoicebotSync\Support\SecretStore;
@@ -52,6 +53,7 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
         $this->loadMigrationsFrom($dir);
 
         $this->registerSchedule();
+        $this->registerInboundRoutes();
 
         if (! $this->app->runningInConsole()) {
             return;
@@ -63,6 +65,17 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
         }
 
         $this->publishes($map, 'voicebot-migrations');
+    }
+
+    private function registerInboundRoutes(): void
+    {
+        /** @var Config $config */
+        $config = $this->app->make('config');
+        if ($config->get('voicebot.inbound.routes', false) !== true) {
+            return;
+        }
+
+        $this->loadRoutesFrom(__DIR__.'/../routes/voicebot.php');
     }
 
     private function registerSchedule(): void
@@ -87,6 +100,9 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(SecretStore::class);
+        $this->app->singleton(InboundVerifier::class, static fn (Container $app): InboundVerifier => new InboundVerifier(
+            $app->make(SecretStore::class),
+        ));
         $this->app->singleton(Watermark::class);
         $this->app->singleton(NdjsonStreamWriter::class);
 

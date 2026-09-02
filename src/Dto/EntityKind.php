@@ -7,7 +7,7 @@ namespace Monoverse\VoicebotSync\Dto;
 /**
  * Canonical entity kinds accepted by the ingest projector. Mirrors the backend
  * _KIND_TO_MODEL (apps/api/.../ingest/parsers/entity_validators.py). Producer-side
- * kinds only — WordPress-specific kinds (form, popup, selector_map) are out of scope.
+ * kinds only. voicebot-waives: form, popup -- no Eloquent source exists for either.
  */
 enum EntityKind: string
 {
@@ -22,6 +22,7 @@ enum EntityKind: string
     case Menu = 'menu';
     case MenuItem = 'menu_item';
     case Site = 'site';
+    case Environment = 'environment';
     case HostProfile = 'host_profile';
     case ShippingMethod = 'shipping_method';
     case PaymentMethod = 'payment_method';
@@ -40,7 +41,7 @@ enum EntityKind: string
             self::MenuItem => ['label', 'menu_external_id'],
             self::Variation => ['parent_external_id'],
             self::ShippingMethod, self::PaymentMethod => ['label'],
-            self::Site, self::HostProfile => [],
+            self::Site, self::Environment, self::HostProfile => [],
         };
     }
 }

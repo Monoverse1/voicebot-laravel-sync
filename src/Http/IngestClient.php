@@ -50,6 +50,7 @@ final class IngestClient
             'pair_code' => $pairCode,
             'site_url' => $siteUrl,
             'provider_id' => Protocol::PROVIDER_ID,
+            'source_package' => Protocol::SOURCE_PACKAGE,
             'plugin_version' => Protocol::pluginVersionHeader(),
             'php_version' => PHP_VERSION,
         ], $metadata);
@@ -83,6 +84,7 @@ final class IngestClient
             'public_key' => $publicKey,
             'site_url' => $siteUrl,
             'provider_id' => Protocol::PROVIDER_ID,
+            'source_package' => Protocol::SOURCE_PACKAGE,
             'plugin_version' => Protocol::pluginVersionHeader(),
             'php_version' => PHP_VERSION,
         ], $metadata);
@@ -145,11 +147,19 @@ final class IngestClient
      */
     public function init(string $syncType, array $expectedCounts): array
     {
+        $body = [
+            'sync_type' => $syncType,
+            'expected_counts' => $expectedCounts,
+        ];
+        // The backend attributes every projected row to a site, and site_url is the only
+        // per-sync lever it reads (ingest/api.py init_sync). Without it a tenant whose
+        // connection is not bound to exactly one site falls through to "sole site", which
+        // resolves to NULL the moment a second storefront exists -- and the two blur.
+        if ($this->siteUrl !== null && $this->siteUrl !== '') {
+            $body['site_url'] = $this->siteUrl;
+        }
         $data = $this->decode(
-            $this->signed('POST', Protocol::PATH_INIT, [
-                'sync_type' => $syncType,
-                'expected_counts' => $expectedCounts,
-            ]),
+            $this->signed('POST', Protocol::PATH_INIT, $body),
             'init',
         );
         if (! isset($data['sync_id'], $data['upload_url']) || ! is_string($data['sync_id']) || ! is_string($data['upload_url'])) {

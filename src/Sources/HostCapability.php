@@ -10,6 +10,7 @@ enum HostCapability: string
     case CatalogGetProduct = 'catalog.get_product';
     case CatalogCompare = 'catalog.compare';
     case CatalogFacets = 'catalog.facets';
+    case CatalogSort = 'catalog.sort';
     case NavOpen = 'nav.open';
     case NavSearchPage = 'nav.search_page';
     case CartAdd = 'cart.add';

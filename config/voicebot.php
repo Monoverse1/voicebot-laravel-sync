@@ -36,6 +36,14 @@ return [
         ],
     ],
 
+    // Inbound "Sync products" trigger from the VoiceBot backend. The package never
+    // mounts a route by itself; flip `routes` on to load the bundled POST /voicebot/sync
+    // route, or leave it off and mount Monoverse\VoicebotSync\Http\SyncTriggerController
+    // from your own routes file (recommended — you control the path + CSRF exclusion).
+    'inbound' => [
+        'routes' => (bool) env('VOICEBOT_INBOUND_ROUTES', false),
+    ],
+
     'sync' => [
         // Rows pulled per DB chunk while streaming (memory-safe; never loads all rows).
         'chunk_size' => (int) env('VOICEBOT_SYNC_CHUNK_SIZE', 200),
@@ -77,6 +85,18 @@ return [
             'updated_at' => 'updated_at',
             'external_id' => 'id',
             'with' => [],
+            // Mapping\Presets::product() builds this from a few columns. Pass a third
+            // `attributes` argument to ground attribute filtering (colour/size/material)
+            // on a flat product row that has no variation table — the bot needs these to
+            // answer "show me white ones". When products push structured attributes (or a
+            // `variations` block below), the sync auto-advertises the `catalog.facets`
+            // capability so the bot may use apply_filter / filter_by_attribute; declare
+            // none and it stays honest (no facet filtering claimed).
+            //
+            // 'map' => Mapping\Presets::product(
+            //     ['name' => 'title', 'price' => 'price', 'stock' => 'in_stock', 'categories' => 'categories'],
+            //     attributes: ['Колір' => 'color', 'Розмір' => 'size'],
+            // ),
             'map' => [
                 // 'payload.name' => 'title',
                 // 'payload.sku' => 'sku',
@@ -87,7 +107,23 @@ return [
                 // 'payload.permalink' => fn ($m) => route('product.show', $m),
                 // 'payload.categories' => fn ($m) => $m->categories->pluck('slug')->all(),
                 // 'payload.stock_status' => fn ($m) => $m->in_stock ? 'instock' : 'outofstock',
+                // Structured facets on a flat product row (axis label => column / closure):
+                // 'payload.attributes' => Mapping\Presets::attributeBuilder(['Колір' => 'color', 'Розмір' => 'size']),
             ],
+            // Configurable products with a variation relation: build canonical variant_axes
+            // + inline per-variation stock straight from the relation (no custom source).
+            // 'variations' => Mapping\Presets::variations(
+            //     items: fn ($m) => $m->variants,
+            //     externalId: fn ($v) => 'laravel:variation:'.$v->id,
+            //     axes: [
+            //         'color' => ['name' => 'Колір', 'value' => 'color'],
+            //         'size' => ['name' => 'Розмір', 'value' => 'size'],
+            //     ],
+            //     fields: [
+            //         'price_amount' => fn ($v) => (int) round($v->price * 100),
+            //         'stock_status' => fn ($v) => $v->stock_qty > 0 ? 'instock' : 'outofstock',
+            //     ],
+            // ),
         ],
         EntityKind::Category->value => [
             'enabled' => true,

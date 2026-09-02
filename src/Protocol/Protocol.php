@@ -45,9 +45,13 @@ final class Protocol
 
     public const HEADER_SITE_URL = 'X-VoiceBot-Site-Url';
 
+    public const HEADER_INBOUND_PATH = 'X-VoiceBot-Inbound-Path';
+
     public const HEADER_IDEMPOTENCY = 'Idempotency-Key';
 
     public const REPLAY_WINDOW_SECONDS = 300;
+
+    public const NONCE_TTL_SECONDS = 600;
 
     public const NONCE_LENGTH_BYTES = 16;
 
@@ -60,10 +64,13 @@ final class Protocol
     /** Canonical backend this producer pairs as; recorded on the provider connection. */
     public const PROVIDER_ID = 'laravel';
 
+    /** Self-declared SDK/stack identity sent in the pair body so the backend can key behaviour on it. */
+    public const SOURCE_PACKAGE = 'laravel_sync';
+
     /** Identifies this producer on the wire (X-VoiceBot-Plugin-Version). */
     public const CLIENT_NAME = 'laravel-sync';
 
-    public const CLIENT_VERSION = '0.3.0';
+    public const CLIENT_VERSION = '0.7.0';
 
     public static function pluginVersionHeader(): string
     {

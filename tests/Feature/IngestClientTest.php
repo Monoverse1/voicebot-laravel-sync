@@ -103,3 +103,40 @@ it('streams the snapshot file on upload without re-signing', function (): void {
 
     Http::assertSent(fn (Request $request): bool => ! $request->hasHeader(Protocol::HEADER_SIGNATURE));
 });
+
+it('puts the configured site_url on the init body, so two storefronts on one connection stay apart', function (): void {
+    $secrets = app(SecretStore::class);
+    seedPairing($secrets);
+
+    Http::fake([
+        '*/api/v1/ingest/init' => Http::response(['sync_id' => 's1', 'upload_url' => 'https://up.test/abc'], 200),
+    ]);
+
+    (new IngestClient($secrets, 'https://api.test.local', [], 'https://shop-a.example'))
+        ->init('full', ['product' => 2]);
+
+    Http::assertSent(function (Request $request): bool {
+        expect($request->data()['site_url'])->toBe('https://shop-a.example');
+        expect($request->data()['sync_type'])->toBe('full');
+
+        return true;
+    });
+});
+
+it('omits site_url from the init body when none is configured', function (): void {
+    $secrets = app(SecretStore::class);
+    seedPairing($secrets);
+
+    Http::fake([
+        '*/api/v1/ingest/init' => Http::response(['sync_id' => 's1', 'upload_url' => 'https://up.test/abc'], 200),
+    ]);
+
+    (new IngestClient($secrets, 'https://api.test.local', [], null))
+        ->init('full', ['product' => 2]);
+
+    Http::assertSent(function (Request $request): bool {
+        expect($request->data())->not->toHaveKey('site_url');
+
+        return true;
+    });
+});

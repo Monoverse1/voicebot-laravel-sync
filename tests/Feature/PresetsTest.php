@@ -84,3 +84,71 @@ it('category preset returns null parent for a root', function (): void {
 
     expect($payload['parent_external_id'])->toBeNull();
 });
+
+it('product preset emits a structured attributes facet list from columns', function (): void {
+    Schema::table('fake_products', function (Blueprint $table): void {
+        $table->string('color_uk')->nullable();
+        $table->string('size')->nullable();
+    });
+    $product = FakeProduct::query()->create([
+        'title' => 'Nike Air Force 1',
+        'price' => 100,
+        'in_stock' => true,
+    ]);
+    $product->forceFill(['color_uk' => 'Білий', 'size' => '38']);
+
+    $map = Presets::product(
+        ['name' => 'title', 'price' => 'price'],
+        attributes: ['Колір' => 'color_uk', 'Розмір' => 'size'],
+    );
+    $payload = presetPayload(EntityKind::Product, $map, $product);
+
+    expect($payload['attributes'])->toBe([
+        ['name' => 'Колір', 'slug' => 'колір', 'values' => ['Білий']],
+        ['name' => 'Розмір', 'slug' => 'розмір', 'values' => ['38']],
+    ]);
+});
+
+it('product preset drops empty attribute axes and dedupes values', function (): void {
+    Schema::table('fake_products', function (Blueprint $table): void {
+        $table->string('color_uk')->nullable();
+        $table->string('material')->nullable();
+    });
+    $product = FakeProduct::query()->create(['title' => 'Tee', 'price' => 10]);
+    $product->forceFill(['color_uk' => '', 'material' => 'Cotton']);
+
+    $map = Presets::product(
+        ['name' => 'title'],
+        attributes: [
+            'Колір' => 'color_uk',
+            'Матеріал' => fn (object $m): array => ['Cotton', 'Cotton', ' '],
+        ],
+    );
+    $payload = presetPayload(EntityKind::Product, $map, $product);
+
+    expect($payload['attributes'])->toBe([
+        ['name' => 'Матеріал', 'slug' => 'матеріал', 'values' => ['Cotton']],
+    ]);
+});
+
+it('product preset omits attributes entirely when none configured', function (): void {
+    $product = FakeProduct::query()->create(['title' => 'Plain', 'price' => 5]);
+
+    $map = Presets::product(['name' => 'title', 'price' => 'price']);
+    $payload = presetPayload(EntityKind::Product, $map, $product);
+
+    expect($payload)->not->toHaveKey('attributes');
+});
+
+it('variations preset builds the EntityMapper variations block', function (): void {
+    $block = Presets::variations(
+        items: 'variants',
+        externalId: fn (object $v): string => 'laravel:variation:'.$v->id,
+        axes: ['color' => ['name' => 'Колір', 'value' => 'color_uk']],
+        fields: ['stock_status' => fn (object $v): string => 'instock'],
+    );
+
+    expect($block)->toHaveKeys(['items', 'external_id', 'axes', 'fields'])
+        ->and($block['items'])->toBe('variants')
+        ->and($block['axes'])->toBe(['color' => ['name' => 'Колір', 'value' => 'color_uk']]);
+});

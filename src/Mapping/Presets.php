@@ -21,9 +21,10 @@ final class Presets
 {
     /**
      * @param  array<string, string>  $columns  canonical key => the model column / relation / dot-path
+     * @param  array<string, string|\Closure>  $attributes  facet axis label => column / dot-path / closure ($m, $locale)
      * @return array<string, mixed>
      */
-    public static function product(array $columns, ?string $currency = null): array
+    public static function product(array $columns, ?string $currency = null, array $attributes = []): array
     {
         $map = [];
         self::copy($map, $columns, ['name', 'sku', 'slug', 'product_type', 'permalink']);
@@ -59,7 +60,67 @@ final class Presets
             }
         }
 
+        if ($attributes !== []) {
+            $map['payload.attributes'] = self::attributeBuilder($attributes);
+        }
+
         return $map;
+    }
+
+    /**
+     * Build the `payload.attributes` closure from a facet-axis map. Each entry becomes a
+     * grounded facet ({name, slug, values: [...]}) the backend indexes for attribute
+     * filtering — color/size/material on a flat product row that has no variation table.
+     * Empty or null axis values are dropped; a scalar yields one value, an array/Collection
+     * yields many. Mirrors the WooCommerce plugin's top-level product `attributes` shape.
+     *
+     * @param  array<string, string|\Closure>  $attributes  axis label => column / dot-path / closure ($m, $locale)
+     * @return \Closure(object, ?string): list<array<string, mixed>>
+     */
+    public static function attributeBuilder(array $attributes): \Closure
+    {
+        return static function (object $model, ?string $locale = null) use ($attributes): array {
+            $out = [];
+            foreach ($attributes as $label => $spec) {
+                $axisName = (string) $label;
+                $resolved = $spec instanceof \Closure
+                    ? $spec($model, $locale)
+                    : data_get($model, $spec);
+                $values = self::attributeValues($resolved);
+                if ($values === []) {
+                    continue;
+                }
+                $out[] = [
+                    'name' => $axisName,
+                    'slug' => self::slugify($axisName),
+                    'values' => $values,
+                ];
+            }
+
+            return $out;
+        };
+    }
+
+    /**
+     * Build the `variations` config block (sibling of `map`, NOT merged into it) that
+     * EntityMapper turns into canonical `variant_axes` + inline `variations[]` from a
+     * relation. `axes` maps an axis slug => {name, value, value_slug?, value_external_id?};
+     * `fields` adds per-variation columns (price_amount, stock_status, …).
+     *
+     * @param  string|\Closure  $items  relation name / dot-path / closure ($product) => iterable<Model>
+     * @param  string|\Closure  $externalId  variation id column / closure ($variant, $locale)
+     * @param  array<string, array<string, mixed>>  $axes
+     * @param  array<string, string|\Closure>  $fields
+     * @return array<string, mixed>
+     */
+    public static function variations(string|\Closure $items, string|\Closure $externalId, array $axes, array $fields = []): array
+    {
+        return [
+            'items' => $items,
+            'external_id' => $externalId,
+            'axes' => $axes,
+            'fields' => $fields,
+        ];
     }
 
     /**
@@ -141,6 +202,35 @@ final class Presets
         }
 
         return $slugs;
+    }
+
+    /** @return list<string> */
+    private static function attributeValues(mixed $resolved): array
+    {
+        if ($resolved instanceof Collection) {
+            $resolved = $resolved->all();
+        }
+        $items = is_array($resolved) ? $resolved : [$resolved];
+        $values = [];
+        foreach ($items as $item) {
+            if (! is_scalar($item)) {
+                continue;
+            }
+            $value = trim((string) $item);
+            if ($value !== '' && ! in_array($value, $values, true)) {
+                $values[] = $value;
+            }
+        }
+
+        return $values;
+    }
+
+    private static function slugify(string $value): string
+    {
+        $ascii = (string) preg_replace('/[^A-Za-z0-9]+/u', '-', $value);
+        $slug = mb_strtolower(trim($ascii, '-'));
+
+        return $slug !== '' ? $slug : mb_strtolower(trim($value));
     }
 
     private static function currency(): string

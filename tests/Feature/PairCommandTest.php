@@ -99,6 +99,52 @@ it('surfaces a distinct domain_mismatch message on pair-by-key (403)', function 
     expect(app(SecretStore::class)->isPaired())->toBeFalse();
 });
 
+it('self-declares source_package=laravel_sync on both pair paths', function (): void {
+    Http::fake([
+        '*/api/v1/ingest/pair' => Http::response([
+            'tenant_id' => '66666666-6666-6666-6666-666666666666',
+            'shared_secret_b64' => base64_encode(random_bytes(32)),
+            'ingest_url' => 'https://api.test.local',
+        ], 200),
+        '*/api/v1/ingest/pair-by-key' => Http::response([
+            'tenant_id' => '77777777-7777-7777-7777-777777777777',
+            'shared_secret_b64' => base64_encode(random_bytes(32)),
+            'ingest_url' => 'https://api.test.local',
+        ], 200),
+    ]);
+
+    $this->artisan('voicebot:pair', ['credential' => 'VB-SRC-PKG'])->assertExitCode(0);
+
+    Http::assertSent(function ($request): bool {
+        if (! str_contains((string) $request->url(), '/api/v1/ingest/pair')) {
+            return false;
+        }
+        $body = json_decode((string) $request->body(), true);
+
+        return ($body['source_package'] ?? null) === 'laravel_sync'
+            && ($body['provider_id'] ?? null) === 'laravel';
+    });
+});
+
+it('sends source_package on the pair-by-key path', function (): void {
+    Http::fake([
+        '*/api/v1/ingest/pair-by-key' => Http::response([
+            'tenant_id' => '88888888-8888-8888-8888-888888888888',
+            'shared_secret_b64' => base64_encode(random_bytes(32)),
+            'ingest_url' => 'https://api.test.local',
+        ], 200),
+    ]);
+
+    $this->artisan('voicebot:pair', ['credential' => 'pk_live_storefront'])->assertExitCode(0);
+
+    Http::assertSent(function ($request): bool {
+        $body = json_decode((string) $request->body(), true);
+
+        return str_contains((string) $request->url(), '/api/v1/ingest/pair-by-key')
+            && ($body['source_package'] ?? null) === 'laravel_sync';
+    });
+});
+
 it('sends locale and timezone metadata on pair', function (): void {
     config()->set('app.locale', 'uk');
     config()->set('app.timezone', 'Europe/Kyiv');

@@ -3,6 +3,64 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-09-02
+
+### Added
+
+- **`EntityKind::Environment` (`environment`).** The enum declared 14 of the backend's 17
+  canonical kinds and could not name the storefront environment entity at all, so a Laravel
+  host pushing one was refused by name and the batch counted a silent failure. The kind
+  requires no payload key — the backend `EnvironmentPayload` defaults every field — so its
+  `requiredPayloadKeys()` arm returns the empty list. `form` and `popup` stay undeclared and
+  are now recorded as waivers in the enum's own docblock, where
+  `apps/api/tests/unit/test_entity_kind_parity.py` reads them.
+
+### Changed
+
+- `Protocol::CLIENT_VERSION` -> `0.7.0` (sent as `X-VoiceBot-Plugin-Version`).
+
+### Fixed
+
+- **`site_url` now travels on the init-sync body.** Every client held the configured
+  storefront URL and dropped it at the one call the backend reads it on. `init_sync`
+  (`apps/api/.../ingest/api.py`) resolves the site by `body.site_url` first and only then
+  falls back to the provider connection, and that fallback returns a site *only when the
+  connection maps to exactly one*. Two storefronts synced through one connection therefore
+  resolved to no site at all, and every projected row landed unattributed — the two
+  catalogues blurred into one. The heartbeat header `X-VoiceBot-Site-Url` does not cover
+  this: it binds site rows on `/status`, it does not disambiguate at init. Guarded by two
+  tests per client (present when configured, absent when not).
+
+## [0.6.0] - 2026-06-23
+
+### Added
+
+- **Structured product attributes for grounded attribute filtering.** `Presets::product()`
+  takes a third `attributes` argument (axis label => column / dot-path / closure) that emits
+  the canonical top-level `payload.attributes` facet list (`[{name, slug, values}]`) the
+  backend indexes for `search_catalog(attributes: …)`. This grounds colour/size/material
+  filtering on a **flat product-per-variation row** that has no variation table — the case
+  where the bot previously answered "немає білих" while the storefront showed white cards,
+  because `ingested_product.attributes` was empty. `Presets::attributeBuilder()` exposes the
+  same builder for hand-written maps; empty/blank axis values are dropped and values are
+  deduped. `Presets::variations()` is a typed constructor for the existing `variations`
+  block (canonical `variant_axes` + inline per-variation stock from a relation).
+- **Auto-advertised `catalog.facets` capability.** When the product config declares a
+  structured `attributes` map or a `variations` block, the sync now advertises the
+  `catalog.facets` capability on the host_profile automatically (synthesizing a host_profile
+  entity if none is enabled), so the bot is permitted to use `apply_filter` /
+  `filter_by_attribute`. Hosts that push no structured attributes advertise nothing — the
+  bot falls back honestly instead of claiming a filter it cannot ground. New
+  `HostCapability::CatalogSort` (`catalog.sort`) closes a parity gap with the backend
+  capability vocabulary.
+- **`source_package = "laravel_sync"` on pairing.** Both `voicebot:pair` paths (legacy
+  pair-code and pair-by-key) now self-declare the SDK in the pair body, so the backend can
+  key behaviour on the producing stack from the connection, not just `provider_id`.
+
+### Changed
+
+- `Protocol::CLIENT_VERSION` → `0.6.0` (sent as `X-VoiceBot-Plugin-Version`).
+
 ## [0.5.1] - 2026-06-19
 
 ### Changed

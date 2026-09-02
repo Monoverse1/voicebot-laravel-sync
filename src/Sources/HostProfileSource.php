@@ -27,8 +27,9 @@ final class HostProfileSource implements EntitySource
 
     /**
      * @param  array<string, mixed>  $config  voicebot.entities.host_profile
+     * @param  list<string>  $derivedCapabilities  capabilities inferred from sibling entity config (e.g. catalog.facets when products push structured attributes)
      */
-    public static function fromConfig(array $config): self
+    public static function fromConfig(array $config, array $derivedCapabilities = []): self
     {
         $raw = $config['capabilities'] ?? [];
         if (! is_array($raw)) {
@@ -37,11 +38,13 @@ final class HostProfileSource implements EntitySource
             );
         }
 
-        /** @var list<string> $capabilities */
-        $capabilities = array_values(array_filter(
+        /** @var list<string> $declared */
+        $declared = array_values(array_filter(
             $raw,
             static fn (mixed $v): bool => is_string($v),
         ));
+
+        $capabilities = self::mergeCapabilities($declared, $derivedCapabilities);
 
         $cartEndpoint = $config['cart_endpoint'] ?? null;
         if ($cartEndpoint !== null && ! is_string($cartEndpoint)) {
@@ -106,6 +109,23 @@ final class HostProfileSource implements EntitySource
         }
 
         return $payload;
+    }
+
+    /**
+     * @param  list<string>  $declared
+     * @param  list<string>  $derived
+     * @return list<string>
+     */
+    private static function mergeCapabilities(array $declared, array $derived): array
+    {
+        $merged = $declared;
+        foreach ($derived as $capability) {
+            if (! in_array($capability, $merged, true)) {
+                $merged[] = $capability;
+            }
+        }
+
+        return $merged;
     }
 
     /** @param list<string> $capabilities */
