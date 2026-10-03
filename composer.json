@@ -1,9 +1,10 @@
 {
     "name": "monoverse/voicebot-laravel-sync",
-    "description": "Sync your Laravel catalog and content to VoiceBot for an AI sales assistant — signed, incremental, swiss-watch reliable.",
+    "description": "Laravel package for Monoverse, the AI sales assistant: syncs your catalog and content to it with signed, incremental pushes.",
     "type": "library",
     "license": "proprietary",
-    "keywords": ["laravel", "voicebot", "catalog", "sync", "ecommerce", "ai"],
+    "keywords": ["monoverse", "laravel", "ai-sales-assistant", "catalog", "sync", "ecommerce", "hmac", "ai"],
+    "homepage": "https://docs.monoverse.tech/v1/laravel/overview/",
     "authors": [
         {"name": "Monoverse", "homepage": "https://monoverse.tech"}
     ],

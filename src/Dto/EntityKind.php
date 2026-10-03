@@ -7,7 +7,7 @@ namespace Monoverse\VoicebotSync\Dto;
 /**
  * Canonical entity kinds accepted by the ingest projector. Mirrors the backend
  * _KIND_TO_MODEL (apps/api/.../ingest/parsers/entity_validators.py). Producer-side
- * kinds only. voicebot-waives: form, popup -- no Eloquent source exists for either.
+ * kinds only. voicebot-waives: form, popup, order -- no Eloquent source exists for these.
  */
 enum EntityKind: string
 {

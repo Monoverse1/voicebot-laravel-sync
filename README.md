@@ -1,10 +1,10 @@
 # monoverse/voicebot-laravel-sync
 
-Sync your Laravel catalog and content to **VoiceBot** for an AI sales assistant — signed,
+Sync your Laravel catalog and content to **Monoverse** for an AI sales assistant — signed,
 incremental, swiss-watch reliable.
 
-This package is a **producer client** for the VoiceBot canonical signed-ingest contract
-(ADR-045 / ADR-055). It pairs with VoiceBot once, then pushes your products, categories,
+This package is a **producer client** for the Monoverse canonical signed-ingest contract
+(ADR-045 / ADR-055). It pairs with Monoverse once, then pushes your products, categories,
 pages and more over an HMAC-signed protocol: a full snapshot for the baseline and small
 incremental deltas after that. Voice stays on the server — this package never embeds any
 LLM SDK; it only streams your data to the ingest endpoint.
@@ -51,7 +51,7 @@ required; publish them only if you want to customise the schema.
 
 ## Pair
 
-Copy your **publishable key** (`pk_...`) from your VoiceBot dashboard, then:
+Copy your **publishable key** (`pk_...`) from your Monoverse dashboard, then:
 
 ```bash
 php artisan voicebot:pair pk_...
@@ -239,7 +239,7 @@ All knobs are env-overridable; see `config/voicebot.php`. Key ones:
 
 ## Publishing (maintainers)
 
-This package lives in the VoiceBot monorepo at `packages/laravel-sync/` and is published to
+This package lives in the Monoverse monorepo at `packages/laravel-sync/` and is published to
 public Packagist via a **read-only subtree split** of this directory into the standalone
 mirror repo `Monoverse1/voicebot-laravel-sync`. Releases are **tag-driven**: push a
 monorepo tag `laravel-sync-vX.Y.Z` and the

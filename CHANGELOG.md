@@ -3,6 +3,36 @@
 All notable changes to `monoverse/voicebot-laravel-sync` are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-02
+
+### Added
+
+- **Pair challenge route (`GET /voicebot/pair-challenge`).** Pairing by publishable key is
+  back, behind a live proof that the caller controls the key's domain (ADR 1837). During a
+  pk_ pairing the backend calls `https://<key domain>/voicebot/pair-challenge?challenge=…`,
+  and the new `PairChallengeController` answers `{"proof": HMAC-SHA256(challenge, nonce)}`
+  under the nonce of the pairing in progress, with `Cache-Control: no-store`. With no
+  pairing in progress it answers `404 no_pairing_in_progress`. The service provider mounts
+  the route unconditionally: it does not sit behind the `voicebot.inbound.routes` opt-in,
+  because the documented flow asks for the key alone.
+- **A pair nonce on the pk_ path.** `voicebot:pair` with a publishable key now generates a
+  32-byte random nonce, caches it under `voicebot:pair-nonce` for 600 seconds, sends it as
+  `pair_nonce` in the pair-by-key body, and forgets it as soon as the call returns. The
+  artisan process and the web server must share one cache store (database or redis), or
+  the route cannot see the nonce. The legacy pair-code path is unchanged.
+- **A distinct `domain_unproven` message.** When the backend cannot read the challenge
+  route, `voicebot:pair` now says so and names the fix: pair on the deployed app over
+  HTTPS, with a cache store the web server shares.
+
+### Changed
+
+- `order` joins `form` and `popup` as a waived kind in `EntityKind`'s docblock: no
+  Eloquent source exists for it, and `apps/api/tests/unit/test_entity_kind_parity.py` reads
+  the waiver from there.
+- The README prose and the `composer.json` description, keywords and new `homepage`
+  (`https://docs.monoverse.tech/v1/laravel/overview/`) name the product Monoverse.
+- `Protocol::CLIENT_VERSION` -> `0.8.0` (sent as `X-VoiceBot-Plugin-Version`).
+
 ## [0.7.0] - 2026-09-02
 
 ### Added

@@ -132,6 +132,7 @@ final class IngestClient
         $status = $response->status();
         $code = $this->errorCode($response);
         $message = match (true) {
+            $code === 'domain_unproven' => 'domain_unproven: VoiceBot could not read GET https://<key domain>/voicebot/pair-challenge with this pairing\'s proof. Pair on the deployed app over HTTPS, with a cache store (database or redis) the web server shares.',
             $status === 401 || $code === 'invalid_key' => 'invalid_key: the publishable key is unknown or inactive. Check VOICEBOT_PUBLIC_KEY in your VoiceBot dashboard.',
             $status === 403 || $code === 'domain_mismatch' => 'domain_mismatch: site_url does not match the domain bound to this key. Set VOICEBOT_SITE_URL to the storefront domain registered for this key.',
             $status === 409 || $code === 'key_has_no_domain' => 'key_has_no_domain: this publishable key has no bound domain yet. Set its canonical domain in the VoiceBot dashboard before pairing.',

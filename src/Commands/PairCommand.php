@@ -6,8 +6,10 @@ namespace Monoverse\VoicebotSync\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Support\Facades\Cache;
 use Monoverse\VoicebotSync\Exceptions\ConfigException;
 use Monoverse\VoicebotSync\Http\IngestClient;
+use Monoverse\VoicebotSync\Http\PairChallengeController;
 use Monoverse\VoicebotSync\Support\SecretStore;
 use Throwable;
 
@@ -49,11 +51,17 @@ final class PairCommand extends Command
         }
 
         $byKey = str_starts_with($credential, self::PUBLIC_KEY_PREFIX);
+        $metadata = $this->metadata();
+        if ($byKey) {
+            $nonce = bin2hex(random_bytes(32));
+            Cache::put(PairChallengeController::NONCE_CACHE_KEY, $nonce, 600);
+            $metadata['pair_nonce'] = $nonce;
+        }
 
         try {
             $result = $byKey
-                ? $client->pairByKey($credential, $siteUrl, $this->metadata())
-                : $client->pair($credential, $siteUrl, $this->metadata());
+                ? $client->pairByKey($credential, $siteUrl, $metadata)
+                : $client->pair($credential, $siteUrl, $metadata);
         } catch (ConfigException $e) {
             // Bad/used credential, domain mismatch, malformed response, insecure URL — the operator must act.
             $this->error('Pairing failed: '.$e->getMessage());
@@ -67,6 +75,10 @@ final class PairCommand extends Command
             $this->error('Pairing failed: '.$e->getMessage());
 
             return self::FAILURE;
+        } finally {
+            if ($byKey) {
+                Cache::forget(PairChallengeController::NONCE_CACHE_KEY);
+            }
         }
 
         $secretRaw = base64_decode($result['shared_secret_b64'], true);

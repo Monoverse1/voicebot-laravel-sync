@@ -7,12 +7,14 @@ namespace Monoverse\VoicebotSync;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Support\Facades\Route;
 use Monoverse\VoicebotSync\Commands\DoctorCommand;
 use Monoverse\VoicebotSync\Commands\InstallCommand;
 use Monoverse\VoicebotSync\Commands\PairCommand;
 use Monoverse\VoicebotSync\Commands\SyncCommand;
 use Monoverse\VoicebotSync\Commands\UnpairCommand;
 use Monoverse\VoicebotSync\Http\IngestClient;
+use Monoverse\VoicebotSync\Http\PairChallengeController;
 use Monoverse\VoicebotSync\Protocol\InboundVerifier;
 use Monoverse\VoicebotSync\Sources\SourceResolver;
 use Monoverse\VoicebotSync\Support\DeadLetter;
@@ -53,6 +55,7 @@ final class VoiceBotSyncServiceProvider extends PackageServiceProvider
         $this->loadMigrationsFrom($dir);
 
         $this->registerSchedule();
+        Route::get(PairChallengeController::CANONICAL_PATH, PairChallengeController::class);
         $this->registerInboundRoutes();
 
         if (! $this->app->runningInConsole()) {
